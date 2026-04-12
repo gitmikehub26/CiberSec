@@ -1,0 +1,126 @@
+Resumen Módulos 3 y 4 – Ethical Hacking
+Miguel Ángel Martín Bustos
+
+Módulo 3: Recopilación de Información y Análisis de Vulnerabilidades
+
+Aquí aprendemos a hacer dos cosas fundamentales: primero, conocer todo lo posible sobre el objetivo antes de tocar cualquier cosa; y segundo, encontrar cuáles de sus servicios tienen debilidades conocidas. En otras palabras, es el paso de "espiar" al paso de "encontrar las puertas abiertas".
+
+1. El Reconocimiento: primero observar, después actuar
+
+El reconocimiento es simplemente recopilar información sobre el objetivo. Y hay dos formas muy distintas de hacerlo, dependiendo de si queremos que el objetivo se entere o no:
+
+•Reconocimiento Pasivo: No tocamos nada del objetivo. Buscamos información que ya está disponible públicamente: su sitio web, sus redes sociales, quién registró su dominio, qué correos están expuestos. El objetivo no sabe que lo estamos mirando. Es como investigar a alguien en Google sin que lo sepa.
+•Reconocimiento Activo: Aquí sí hay contacto directo. Le enviamos "paquetes" a la red del objetivo para ver cómo responde. Ya generamos tráfico, lo que significa que podría detectarnos. Por eso esta parte requiere autorización expresa del cliente.
+
+Dentro del reconocimiento pasivo, la técnica más importante es el OSINT (Inteligencia de Fuentes Abiertas). Suena complicado, pero básicamente es "googlear con esteroides". Con herramientas como Recon-ng podemos automatizar la búsqueda de correos corporativos, subdominios y datos de empleados. Shodan es otro recurso que nos permite ver qué dispositivos de una organización están expuestos directamente a Internet, desde cámaras de seguridad hasta routers. 
+
+También aprendemos que hasta los metadatos de archivos (documentos Word, fotos) pueden revelar nombres de usuario, software instalado o incluso coordenadas GPS. ExifTool es la herramienta para eso. Y herramientas como h8mail o WhatBreach nos permiten saber si los correos del objetivo aparecen en bases de datos de contraseñas filtradas. Todo esto sin tocar un solo sistema del cliente.
+
+2. El Escaneo con Nmap: "tocar las puertas" con inteligencia
+
+Nmap ya lo conocíamos de cursos anteriores, pero ahora lo vemos desde otro ángulo. En telecomunicaciones lo usábamos para mapear redes; en ethical hacking lo usamos para encontrar servicios vulnerables. La herramienta es la misma, la intención cambia.
+Lo importante aquí son los tipos de escaneo, porque cada uno tiene un comportamiento diferente en la red:
+
+•Escaneo SYN (el más común): Enviamos la primera parte del saludo TCP (el SYN) y esperamos respuesta. Si el puerto responde con SYN-ACK, está abierto. Nunca completamos la conexión, lo que lo hace más discreto. Es el favorito porque es rápido y difícil de detectar.
+•Escaneo TCP completo: Completamos el handshake TCP completo. Más confiable, pero más fácil de detectar porque establece conexiones reales que quedan registradas en los logs del servidor.
+•Escaneo UDP: Más lento y menos confiable, pero necesario porque servicios importantes como DNS y DHCP usan UDP. Si solo escaneamos TCP nos quedamos con puntos ciegos.
+•Escaneo FIN: Enviamos un paquete de cierre de conexión a un puerto que no tiene ninguna conexión abierta. Algunos firewalls no filtran este tipo de paquete, lo que lo hace útil para evadir ciertos controles de seguridad.
+Nmap también tiene un control de velocidad con plantillas del -T0 al -T5. En -T0 el escaneo es tan lento que casi no se nota, pero tarda horas. En -T5 es agresivo y rápido, pero puede saturar la red y activar alarmas. En producción generalmente nos quedamos en -T2 o -T3 para no interrumpir el negocio.
+
+3. La Enumeración: de "¿qué hay?" a "¿quién eres?"
+
+Una vez que sabemos qué puertos están abiertos, el siguiente paso es la enumeración: identificar exactamente qué servicio y qué versión corre detrás de cada puerto. Esto importa mucho porque las vulnerabilidades son específicas de versiones. Apache 2.4.49 tiene un exploit famoso que Apache 2.4.50 ya no tiene, por ejemplo.
+
+Las técnicas de enumeración más relevantes que vimos son:
+
+•Enumeración de hosts: Identificar todas las IPs activas en el rango objetivo. Masscan puede hacer esto a escala masiva.
+•Enumeración de usuarios y grupos: En redes Windows, el protocolo SMB puede revelar nombres de usuarios válidos y los grupos de seguridad que existen. Tener una lista de usuarios reales facilita muchísimo un ataque de contraseñas posterior.
+•Enumeración de recursos compartidos: Identificar carpetas, archivos e impresoras compartidas en la red. Un recurso compartido mal configurado puede tener documentos internos, contraseñas o código fuente expuestos.
+•Enumeración web: Mapear directorios y páginas ocultas en aplicaciones web. Muchos servidores tienen páginas de administración o archivos de configuración accesibles si sabes dónde buscar.
+•Elaboración de paquetes con Scapy: Un framework en Python que nos permite construir paquetes de red completamente personalizados. Útil para técnicas de reconocimiento que los escáneres estándar no cubren.
+
+4. El Análisis de Vulnerabilidades: encontrar las puertas abiertas
+
+Con la información del reconocimiento y la enumeración, ahora podemos correr un escáner de vulnerabilidades. Herramientas como Nessus u OpenVAS comparan todo lo que encontramos contra bases de datos de vulnerabilidades conocidas y nos generan un reporte.
+
+El proceso que siguen estos escáneres es siempre el mismo: detectar qué hay, identificar las versiones exactas, buscar vulnerabilidades conocidas para esas versiones, y generar el informe. Parece sencillo, pero hay varios tipos de escaneo con características distintas:
+
+•No autenticado: Sin credenciales. Solo ve lo que está expuesto al exterior. Simula un atacante desconocido.
+•Autenticado: Con credenciales de acceso. Ve mucho más: software instalado, parches aplicados, configuraciones internas. Mucho más completo.
+•Furtivo: Minimiza el ruido para no activar alarmas. Útil cuando el cliente no quiere interrumpir operaciones, aunque puede perderse algunas vulnerabilidades.
+•De cumplimiento: Verifica que el sistema cumpla regulaciones específicas como PCI DSS o HIPAA.
+
+Hay desafíos importantes al hacer estos escaneos. El momento importa: nunca se escanea en horario pico porque puede degradar el servicio. La topología de red importa: hay que estar lo más cerca posible del objetivo para que los resultados sean precisos. Y los dispositivos frágiles como impresoras, equipos IoT o sistemas industriales a veces hay que excluirlos porque un escaneo normal puede hacerlos fallar.
+
+5. Los Falsos Positivos y el Sistema CVE
+
+Este punto es el que más diferencia a un pentester profesional de uno que solo sabe ejecutar herramientas. Los escáneres generan falsos positivos: reportan vulnerabilidades que en realidad no existen o que no aplican al contexto. Presentar un informe lleno de falsos positivos es un error grave que afecta la credibilidad.
+
+Por eso cada vulnerabilidad reportada hay que validarla manualmente. Para eso existe el sistema CVE (Common Vulnerabilities and Exposures): una base de datos donde cada vulnerabilidad conocida tiene un identificador único. Al cruzar el reporte del escáner con CVE podemos confirmar si la vulnerabilidad aplica a la versión exacta que encontramos. Además, el sistema CVSS le asigna una puntuación del 0 al 10 que indica qué tan grave es. Con eso podemos priorizar: no todas las vulnerabilidades tienen el mismo impacto.
+Organizaciones como el NIST, US-CERT y la División CERT de Carnegie Mellon publican información adicional sobre vulnerabilidades activas que complementa lo que encontramos en los escaneos.
+
+Módulo 4: Ataques de Ingeniería Social
+
+Llevamos tres módulos aprendiendo a atacar sistemas y redes, y de repente el curso nos dice: el eslabón más débil no es el servidor, no es el firewall, no es el protocolo. Es la persona. La ingeniería social es el arte de manipular a seres humanos para obtener información o acceso que técnicamente sería muy difícil conseguir de otra forma. Y según la industria, es el vector de ataque más exitoso que existe hoy.
+
+1. ¿En qué consiste la Ingeniería Social?
+
+La ingeniería social funciona a través de tres acciones: influir, interrogar y suplantar. El objetivo siempre es el mismo: lograr que la víctima entregue información o haga algo sin que sienta que la están engañando.
+
+La parte del interrogatorio es más sutil de lo que parece. Los ingenieros sociales usan dos tipos de preguntas:
+
+•Preguntas abiertas: Hacen que la víctima hable libremente y revele información sin darse cuenta. "¿Cómo manejan ustedes el proceso de acceso cuando un empleado olvida su contraseña?" La víctima puede describir todo el procedimiento interno sin que nadie le esté preguntando algo directamente sospechoso.
+•Preguntas cerradas: Para confirmar información que ya se sospecha. Más directas, pero menos reveladoras.
+
+También se presta mucha atención al lenguaje corporal y los patrones de habla para detectar inseguridades, nerviosismo o puntos de presión que se puedan aprovechar en interacciones presenciales.
+
+2. Las 5 palancas psicológicas que usan los atacantes
+
+Los ingenieros sociales no inventaron nada nuevo. Usan principios de psicología social que llevan décadas estudiados. Lo que hacen es aplicarlos de forma maliciosa:
+
+•Autoridad: La gente obedece a las figuras de autoridad sin cuestionar. Un atacante que se presenta como el gerente de TI, un auditor externo o un representante del banco puede obtener acceso sin que nadie le pida credenciales porque nadie quiere contradecir a "alguien importante".
+•Escasez y urgencia: "Necesito que me des acceso en los próximos 5 minutos o el sistema colapsa." La urgencia desactiva el pensamiento crítico. Cuando sentimos presión de tiempo, tomamos decisiones rápidas sin verificar.
+•Prueba social: Hacemos lo que vemos que otros hacen, especialmente cuando no estamos seguros. "Todos en el departamento ya me enviaron sus credenciales para la actualización." Si los demás lo hicieron, debe estar bien.
+•Semejanza: Es más fácil manipular a alguien que te tiene confianza. El atacante invierte tiempo en construir una relación, encontrar temas en común y caer bien antes de pedir algo. Es el método más lento pero el más efectivo.
+•Miedo: "Si no me das acceso ahora, tu empresa va a ser auditada mañana y tú serás el responsable." El miedo, como la urgencia, nos hace actuar sin pensar.
+
+3. Los tipos de ataque: del correo al USB en el piso
+
+La ingeniería social tiene muchas formas. Las más comunes que vimos en el módulo son:
+
+•Phishing: El clásico. Correos masivos que simulan venir de un banco, una plataforma de pagos o un servicio conocido. Se mandan a miles de personas esperando que alguna caiga. El correo tiene un enlace falso o un archivo malicioso adjunto.
+•Spear Phishing: La versión dirigida. El atacante investiga a una persona específica y construye un correo personalizado y muy convincente. Mucho más peligroso que el phishing masivo.
+•Whaling: Spear phishing apuntado a ejecutivos de alto nivel: el CEO, el CFO, el director general. Se llama así porque van a por las "ballenas", es decir, los peces gordos con acceso a información y dinero más valioso.
+•Vishing: Phishing por teléfono. El atacante llama haciéndose pasar por soporte técnico, el banco o incluso la policía. En una llamada es mucho más difícil verificar quién es realmente el que está hablando.
+•Smishing: Lo mismo, pero por SMS. Mensajes de texto que simulan alertas bancarias o notificaciones de paquetes para que hagas clic en un enlace o respondas con tus datos.
+•Abandono de USB: Dejar memorias USB con malware en lugares estratégicos dentro o cerca de las instalaciones del objetivo. La curiosidad humana hace el resto: alguien la encuentra y la conecta a su computadora. Suena primitivo, pero sigue funcionando.
+•Ataque de bebedero: Inyectar código malicioso en un sitio web que el atacante sabe que las víctimas visitan frecuentemente. Como un depredador que envenena el pozo donde sus presas van a beber. La víctima visita un sitio de confianza y sin saberlo ejecuta código malicioso.
+•Pharming: La víctima escribe la URL correcta en su navegador, pero es redirigida silenciosamente a un sitio falso idéntico al original. Esto se puede hacer envenenando el caché DNS o modificando el archivo hosts del sistema. Es particularmente relevante para nosotros porque DNS es un protocolo que conocemos bien.
+•Publicidad maliciosa (Malvertising): Meter anuncios con código malicioso en redes publicitarias legítimas. El anuncio aparece en sitios confiables y lleva a los usuarios a páginas que instalan malware. No necesitas hacer clic en nada sospechoso; el anuncio aparece donde normalmente navegas.
+
+4. Ataques físicos: la seguridad no es solo digital
+
+En este módulo vimos que en un Red Team (pentest completo) también se evalúan vulnerabilidades físicas. Un atacante que logra entrar físicamente a las instalaciones puede saltarse casi cualquier control técnico. Los métodos más comunes son:
+
+•Tailgating (Seguimiento): Entrar a un área restringida siguiendo a alguien autorizado sin tener credenciales propias. El empleado abre la puerta con su tarjeta y el atacante entra detrás. La cortesía natural de la gente hace que nadie diga nada. Contramedida: torniquetes de acceso individual.
+•Búsqueda en la basura (Dumpster Diving): Revisar los desechos de una empresa buscando documentos con información sensible, notas con contraseñas, organigramas o cualquier dato útil. Suena absurdo pero es muy efectivo. Contramedida: triturar los documentos antes de desecharlos.
+•Vigilancia por encima del hombro (Shoulder Surfing): Simplemente mirar la pantalla o el teclado de alguien mientras trabaja para capturar contraseñas o información sensible. Puede hacerse en persona o con cámaras. Contramedida: filtros de privacidad en pantallas.
+•Clonación de credenciales: Duplicar tarjetas de acceso RFID con hardware especializado. Si el atacante logra acercar un lector clandestino a la tarjeta de un empleado, puede copiar sus credenciales físicas.
+
+5. Herramientas: el lado técnico de la ingeniería social
+
+Aunque la ingeniería social parece solo "labia" y manipulación, tiene sus propias herramientas técnicas:
+
+•SET (Social Engineering Toolkit): La herramienta más completa para este tipo de ataques. Viene preinstalada en Kali Linux. Con SET podemos crear correos de spear phishing con archivos maliciosos adjuntos, configurar páginas web falsas idénticas a las originales y manejar conexiones TCP inversas para recibir la sesión del equipo comprometido cuando la víctima ejecute el payload. Se integra directamente con Metasploit.
+•BeEF (Browser Exploitation Framework): Se enfoca en explotar vulnerabilidades del navegador web a través de ataques XSS. Cuando la víctima visita una página con el hook de BeEF, su navegador queda bajo control. Desde la consola podemos enviarle notificaciones falsas, redirigirla a otras páginas o capturar información. Corre en el puerto 3000.
+•Herramientas de suplantación de llamadas: SpoofApp y SpoofCard permiten cambiar el número que ve el receptor de una llamada, modificar la voz en tiempo real y grabar la conversación. Asterisk, que es una central VoIP de código abierto que ya conocemos en telecomunicaciones, también puede configurarse para suplantar identificadores de llamada.
+Asterisk es particularmente interesante para nosotros porque lo hemos visto en contextos de infraestructura de voz. Aquí lo vemos desde el ángulo de la seguridad: si no está bien configurado y protegido, puede ser una herramienta de ataque.
+
+6. ¿Cómo se defiende una organización de esto?
+
+El problema con la ingeniería social es que no hay parche de software que lo solucione. La defensa está en cuatro frentes:
+
+•Políticas claras: Definir exactamente qué información se puede entregar por correo o teléfono y bajo qué condiciones. Si no existe una política que diga "nunca entregamos contraseñas por teléfono", los empleados no saben que no deben hacerlo.
+•Herramientas de seguridad actualizadas: Filtros de correo anti-phishing, navegadores con detección de sitios maliciosos y soluciones endpoint que bloqueen archivos peligrosos.
+•Monitoreo de sitios propios: Revisar periódicamente que el código de nuestros propios sitios web no haya sido modificado para insertar scripts maliciosos.
+•Capacitación de usuarios: El más importante. Un empleado que sabe reconocer un correo de phishing, que verifica la identidad de quien le llama pidiendo acceso y que entiende los trucos de urgencia y autoridad, vale más que cualquier herramienta de seguridad. Por eso en un pentest completo siempre se incluye una campaña de ingeniería social para mostrarle a la gerencia cuántos empleados hubieran caído.

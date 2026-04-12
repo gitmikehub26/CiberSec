@@ -1,0 +1,92 @@
+Resumen Módulo 5 – Ethical Hacking
+Explotación de Vulnerabilidades de Red e Inalámbricas
+Miguel Ángel Martín Bustos
+
+Este módulo es el más cercano a nuestra carrera: atacamos protocolos que conocemos de memoria. DNS, SMB, DHCP, SNMP, FTP, SMTP... todo lo que configuramos en prácticas de redes ahora lo vemos desde el lado del atacante.
+Parte 1: Redes Cableadas
+NetBIOS y LLMNR
+Cuando Windows no resuelve un nombre por DNS, lo pregunta a toda la red por LLMNR. Un atacante puede responder primero, recibir el intento de autenticación de la víctima y capturar su hash NTLMv2 para crackearlo offline. Herramientas: Responder, NBNSpoof, Metasploit.
+SMB y EternalBlue
+EternalBlue explota una falla en SMBv1 para ejecutar código remoto sin credenciales. Fue el motor de WannaCry y Nyeta. Metasploit lo tiene incorporado: se configura RHOST y LHOST, se ejecuta, y se obtiene una sesión Meterpreter con control total. Para identificar objetivos: Nmap y Enum4linux.
+Envenenamiento de caché DNS
+El atacante corrompe la caché DNS para que el servidor devuelva su IP en lugar de la legítima. La víctima escribe la URL correcta pero termina hablando con el atacante. Completamente transparente para el usuario.
+SNMP
+SNMPv2c usa cadenas de comunidad como contraseña. Muchos equipos dejan los valores por defecto ("public"/"private"), lo que permite leer y modificar configuraciones de dispositivos. Nmap con scripts NSE enumera dispositivos SNMP; snmp-check automatiza la recolección de información.
+SMTP y FTP
+Un servidor SMTP con Open Relay permite enviar spam o phishing usando el dominio de la víctima. El comando VRFY enumera usuarios válidos (herramienta: smtp-user-enum). FTP transmite todo en texto plano; el acceso anónimo expone archivos sin credenciales. Versiones seguras: FTPS y SFTP con AES y SHA-2.
+Pass-the-Hash
+Windows guarda contraseñas como hashes en el archivo SAM. Algunos protocolos aceptan el hash directamente sin necesitar la contraseña real. Si obtengo el hash de un administrador, me autentico en otros sistemas sin necesidad de crackearlo.
+Kerberos, LDAP y Kerberoasting
+El ticket dorado es el ataque más poderoso: con el hash KRBTGT se pueden generar tickets válidos para cualquier usuario del dominio. Kerberoasting extrae hashes de cuentas de servicio para descifrarlos offline. Si la contraseña de la cuenta de servicio es débil, cae.
+Ataques en ruta y manipulación de rutas
+En capa 2: ARP Spoofing (hacerse pasar por el gateway), suplantación de MAC y manipulación de STP para convertirse en root bridge. En capa 3: secuestro de BGP, anunciando prefijos falsos para redirigir tráfico de Internet a través del atacante.
+DoS y DDoS
+•	Directo: Inundar directamente a la víctima. SYN Flood llena la tabla de conexiones del servidor.
+•	Reflejado: Paquetes falsificados con la IP de la víctima que hacen que terceros inocentes la inunden.
+•	Amplificación: Consultas pequeñas que generan respuestas grandes (ej: DNS), multiplicando el tráfico contra la víctima.
+Salto de VLAN y ataques a DHCP
+Switch Spoofing negocia un trunk para recibir tráfico de todas las VLANs. Double Tagging usa dos etiquetas para inyectar tráfico en VLANs restringidas. La inanición de DHCP agota las IPs disponibles para luego levantar un servidor DHCP falso que asigna su propia gateway y DNS, ejecutando un Man-in-the-Middle masivo. El NAC se evade falsificando MACs autorizadas.
+Parte 2: Redes Inalámbricas
+Puntos de acceso falsos
+Evil Twin: AP con el mismo SSID que la red legítima pero mayor potencia. Los dispositivos se conectan automáticamente. Los ataques PNL escuchan las sondas de redes conocidas que envían los dispositivos y se hacen pasar por ellas. KARMA automatiza esto respondiendo a todas las sondas.
+Ataques a protocolos WiFi
+•	WEP: Completamente roto. Sus vectores de inicialización cortos permiten descifrar la clave en minutos con Aircrack-ng.
+•	WPA/WPA2: Se captura el handshake de 4 vías y se hace fuerza bruta offline de la PSK.
+•	WPA3: Más seguro pero susceptible a ataques de canal lateral, degradación forzada a WPA2 y DoS.
+•	WPS: El PIN de 8 dígitos se rompe con Reaver en horas. Debe estar desactivado siempre.
+Otros ataques inalámbricos
+•	Bluetooth: Bluejacking envía mensajes no solicitados. Bluesnarfing accede a información sin autorización. BLE en dispositivos IoT es vulnerable a ataques en ruta y DoS.
+•	RFID: Clonación de tarjetas, robo silencioso de información y ataques de amplificación NFC.
+•	War Driving/Flying: Escanear redes inalámbricas conduciendo o con drones para identificar objetivos.
+•	Password Spraying: Probar una contraseña común contra muchos usuarios para evitar bloqueos de cuenta.
+•	Encadenamiento de explotaciones: Combinar múltiples vulnerabilidades en secuencia para lograr un objetivo que ninguna permitiría sola.
+
+Cada protocolo que atacamos aquí es uno que configuramos como ingenieros. Conocer estos ataques nos hace mejores diseñadores de redes: cada puerto SNMP con credenciales por defecto, cada servidor FTP con acceso anónimo o cada cuenta de servicio con contraseña débil es una puerta abierta.
+ 
+Resumen Módulo 6 – Ethical Hacking
+Ataques a Aplicaciones Web y el Top 10 de OWASP
+
+Ahora el objetivo son las aplicaciones web. Todo pasa por el navegador hoy: correo corporativo, sistemas de gestión, portales. Este módulo gira alrededor del Top 10 de OWASP, el estándar de la industria para los riesgos más críticos en aplicaciones web.
+1. HTTP y sesiones web
+HTTP es sin estado: cada petición es independiente. Las aplicaciones usan tokens de sesión para recordar al usuario entre peticiones. Si alguien roba ese token, puede suplantarlo completamente sin conocer su contraseña. Herramientas como Burp Suite actúan como proxy para interceptar y modificar ese tráfico en tiempo real.
+2. Fallas de lógica empresarial
+Vulnerabilidades en el diseño del flujo de la aplicación, no en el código. Ningún escáner las detecta automáticamente. Ejemplos: cupones de descuento reutilizables, pasos de autenticación omitibles, permisos basados en valores que el usuario controla. MITRE CWE-840. Solo se previenen con validación sólida y modelado de amenazas desde el diseño.
+3. Vulnerabilidades de inyección
+Inyección SQL
+La aplicación pasa datos del usuario directamente a una consulta SQL sin validarlos. El atacante mete código SQL para ver, modificar o eliminar registros. Tres tipos: en banda (datos por el mismo canal), fuera de banda (por canal diferente) y ciega (el atacante deduce información por el comportamiento de la app). Prevención: consultas parametrizadas, nunca concatenar texto del usuario en SQL.
+Inyección de Comandos e Inyección LDAP
+Inyección de comandos: el intérprete es el SO; el atacante ejecuta comandos del sistema directamente. Inyección LDAP: consultas al directorio con datos del usuario sin validar permiten omitir autenticación o extraer información de la organización.
+4. Vulnerabilidades de autenticación
+•	Fuerza bruta: Probar combinaciones usuario/contraseña hasta acertar. Hydra y Burp Suite lo automatizan.
+•	Secuestro de sesión: Robar el token de sesión por XSS o tráfico no cifrado para suplantar al usuario.
+•	Redirección no validada: Manipular el parámetro de redirección para llevar a la víctima a sitios maliciosos.
+•	Credenciales predeterminadas o débiles: Contraseñas de fábrica nunca cambiadas o contraseñas predecibles. Sorprendentemente común en producción.
+•	Kerberos: Ticket dorado (hash KRBTGT = acceso total al dominio) y delegación sin restricciones.
+5. Vulnerabilidades de autorización
+•	Contaminación de parámetros HTTP: Enviar el mismo parámetro con valores diferentes para confundir la aplicación y saltarse validaciones.
+•	IDOR: Cambiar un valor en la URL (ej: ?id=1234 → ?id=1235) para acceder a recursos de otro usuario. Uno de los errores más frecuentes.
+6. XSS – Secuencias de Comandos entre Sitios
+Inyectar JavaScript malicioso en una página para ejecutarlo en el navegador de otros usuarios: robar cookies, capturar lo que el usuario escribe o ejecutar acciones en su nombre.
+•	Reflejado: El código está en la URL. La víctima hace clic en un enlace malicioso y el script se ejecuta sin quedar almacenado.
+•	Almacenado (persistente): El código queda en la base de datos (ej: comentarios de un blog). Afecta a todos los visitantes automáticamente. El más peligroso.
+•	Basado en DOM: Ocurre completamente en el navegador sin que el servidor esté involucrado. No deja rastro en logs.
+Mitigación: sanitizar y escapar datos del usuario, usar Política de Seguridad de Contenido (CSP).
+7. CSRF y Clickjacking
+CSRF explota la confianza del sitio en el navegador autenticado del usuario. Si estás logueado en tu banco y visitas una página maliciosa, esa página puede ejecutar acciones en el banco usando tu sesión activa sin que lo sepas. Defensa: tokens anti-CSRF únicos por sesión.
+Clickjacking coloca elementos invisibles sobre botones legítimos para que el usuario haga clic en algo diferente a lo que cree. Defensa: encabezados X-Frame-Options o CSP frame-ancestors para evitar que la página sea enmarcada en iframes externos.
+8. Configuraciones incorrectas e inclusión de archivos
+•	Directory Traversal: Usar ../ en parámetros de archivo para salirse de la carpeta web y acceder a archivos del sistema (ej: /../../../etc/passwd).
+•	Manipulación de cookies: Modificar cookies sin cifrar ni firmar para escalar privilegios o suplantar usuarios.
+•	LFI (Local File Inclusion): La aplicación carga un archivo local del servidor basándose en un parámetro del usuario. Permite leer archivos del sistema o ejecutar código local.
+•	RFI (Remote File Inclusion): La aplicación descarga y ejecuta un archivo del servidor del atacante. Resultado: ejecución remota de código directa.
+9. Malas prácticas de programación
+•	Comentarios con datos sensibles: Contraseñas o credenciales de API visibles en el código fuente del navegador.
+•	Errores excesivamente detallados: Revelan versión del servidor, consulta SQL fallida o ruta del archivo al atacante.
+•	Credenciales hardcodeadas: Contraseñas escritas en el código. Si alguien accede al repositorio, tiene todo.
+•	Condiciones de carrera: Explotar la ventana de tiempo entre la verificación de un permiso y su ejecución.
+•	APIs desprotegidas: Endpoints sin los controles de la interfaz web, accesibles y explotables directamente.
+•	Campos ocultos en formularios: Modificar en el HTML valores como precios o permisos antes de enviar el formulario.
+•	Falta de firma de código: Sin firma digital, el software puede ser alterado y redistribuido sin detección.
+•	Herramientas: Burp Suite y OWASP ZAP como proxies. DirBuster, gobuster, ffuf y feroxbuster para enumerar directorios y archivos ocultos.
+
+Cada campo de texto, cada parámetro en una URL, cada cookie es un vector de ataque potencial. La mayoría de estas vulnerabilidades no requieren habilidades avanzadas: requieren entender bien HTTP y probar con metodología. Por eso practicar en laboratorios controlados antes de tocar cualquier sistema real no es opcional.
